@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Mercearia Exclusiva</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+        <img src="imagens/carrinho.png" width="100">
+     <a href="index.html" class="logo-link">
+    <h1>Mercearia Exclusiva</h1>
+    </a>
+    <div class="buscar">
+         <input  type="text" id="campoBusca"  placeholder="Oque você procura?">
+        <button onclick="pesquisar(value)"><img src="imagens/lupa.png"class="icone"></button>
+    </div>
+   <div id="usuario" class="nome-usuario"></div>
+    <div class="botoes">
+        <button onclick="window.location.href='login.html'">Login</button>
+        <button onclick="window.location.href='cadastro.html'">Cadastre-se</button>
+        <button onclick="window.location.href='carrinho.html'"> <img src = "imagens/carrinho-icone.png" class="icone"></button>
+    </div>
+</div>
+     </header>
+    <section class="categorias-container">
+    <div class="card" onclick="clickCategoria('ferramentas e construção')">
+        <span class="titulo">Ferramentas e Construção</span>
+        <img src="imagens/ferramentas.png" >
+    </div>
+
+    <div class="card" onclick="clickCategoria('eletrônicos')">
+        <span class="titulo">Eletrônicos</span>
+        <img src="imagens/eletronicos.png" >
+    </div>
+
+     <div class="card" onclick="clickCategoria('brinquedos')">
+        <span class="titulo">Brinquedos</span>
+        <img src="imagens/brinquedos.png" >
+
+    </div><div class="card" onclick="clickCategoria('esporte e fitness')">
+        <span class="titulo">Esporte e Fitness</span>
+        <img src="imagens/esporte.png" >
+    </div>
+    </div><div class="card" onclick="clickCategoria('jogos')">
+        <span class="titulo">Jogos</span>
+        <img src="imagens/jogos.png" >
+    </div>
+
+    </div><div class="card" onclick="clickCategoria('informatica')">
+        <span class="titulo">Informatica</span>
+        <img src="imagens/informatica.png" >
+    </div>
+
+    </div><div class="card" onclick="clickCategoria('petshop')">
+        <span class="titulo">PetShop</span>
+        <img src="imagens/petshop.png" >
+    </div>
+
+      </div><div class="card" onclick="clickCategoria('eletrodomésticos')">
+        <span class="titulo">Eletrodomésticos</span>
+        <img src="imagens/eletrodomestico.png" >
+    </div>
+
+      </div><div class="card" onclick="clickCategoria('moda')">
+        <span class="titulo">Moda</span>
+        <img src="imagens/moda.png" >
+    </div>
+    
+</section>
+
+<div id="categoria" class="categoria-container"></div>
+     
+
+
+<script type="module" src="utils.js"></script>
+<script type="module" src="vitrine.js"></script>
+<script type="module" src="main.js"></script>

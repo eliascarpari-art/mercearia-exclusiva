@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Mercearia Exclusiva</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+        <img src="imagens/carrinho.png" width="100">
+     <a href="index.html" class="logo-link">
+    <h1>Mercearia Exclusiva</h1>
+    </a>
+    <div class="buscar">
+        <input  type="text" id="campoBusca"  placeholder="Oque você procura?">
+        <button onclick="pesquisar(value)"><img src="imagens/lupa.png"class="icone"></button>
+    </div>
+    <div id="usuario" class="nome-usuario"></div>
+      <div class="botoes">
+        <button onclick="window.location.href='login.html'">Login</button>
+        <button onclick="window.location.href='cadastro.html'">Cadastre-se</button>
+        <button onclick="window.location.href='carrinho.html'"> <img src = "imagens/carrinho-icone.png" class="icone"></button>
+    </div>
+</div>
+     </header>
+     <div id="compras" class="compras-container">
+    <div  id="produtoCompras" class="produto-compras">
+        <h2>Minhas Compras</h2>
+    </div>
+    </div>
+
+     
+    
+    
+
+
+<script type="module" src="utils.js"></script>
+    <script type="module" src="vitrine.js"></script>
+    <script type="module" src="main.js"></script>

@@ -1,0 +1,1424 @@
+import { db, procurarId, salvarProduto, primeirosProdutos, procurarCategoria, salvarUsuarioBanco, procurarUsuario, filtrarProdutos, salvarProdutoCarrinho ,filtrarUsuarios } from "./db.js";
+console.log("Container encontrado?");
+await inicializarSistema();
+//limparBanco();
+async function produtosIniciais() {
+
+    const info = await db.allDocs();
+
+    if (info.total_rows == 0) {
+
+        try {
+            db.bulkDocs(primeirosProdutos)
+        } catch (error) {
+            console.log("Erro ao iniciar produtos!", error);
+        }
+    }
+
+}
+
+async function limparBanco() {
+    try {
+        localStorage.removeItem('produtosPendentes');
+        await db.destroy();
+
+        console.log("Banco de dados deletado com sucesso!");
+
+    } catch {
+        console.error("Erro ao limpar o banco:");
+    }
+}
+
+
+
+async function vitrine() {
+
+     try {
+    const vitrineContainer = document.getElementById('vitrine');
+    vitrineContainer.innerHTML = "";
+    const produtos = await filtrarProdutos();
+
+
+    const idsEscolhidos = [];
+    for (let i = 0; idsEscolhidos.length <= 20; i++) {
+
+        const indice = Math.floor(Math.random() * produtos.length) ;
+        if (!idsEscolhidos.includes(indice)) {
+
+            idsEscolhidos.push(indice);
+        }
+
+    }
+   
+        for (let i = 0; i <= 20; i++) {
+            const produto = produtos[idsEscolhidos[i]];
+            vitrineContainer.innerHTML +=
+                `
+        
+        <div class="container-cards" onclick="acessarProduto('${produto._id}')">
+        <img src="${produto.imagem}" onerror="this.src='imagens/noimagem.png'">
+        <p>${produto.titulo}</p>
+        <p>R$${produto.preco.toFixed(2)}</p>
+        </div> 
+        `;
+        }
+    }
+
+    catch {
+        console.log(`Erro na vitrine`);
+    }
+
+}
+
+
+
+async function inicializarSistema() {
+
+    try {
+        console.log("INICIANDO");
+        await produtosIniciais();
+        const vitrineContainer = document.getElementById('vitrine');
+        const produtoContainer = document.getElementById('produto');
+        const categoriaContainer = document.getElementById('categoria');
+        const carrinhoContainer = document.getElementById('carrinho');
+        const buscaContainer = document.getElementById('busca');
+        const comprasContainer = document.getElementById('compras');
+        const resumo = await db.allDocs();
+        const listaParaConferir = resumo.rows.map(item => {
+            return {
+                id_no_banco: item.id,
+                tipo_do_id: typeof item.id,
+                usuario: item.usuario,
+                cpf: item.cpf
+
+
+            };
+        });
+
+        if (localStorage.getItem('isLogged') === 'true') {
+            console.log("usuario logado!");
+            const idAtual = localStorage.getItem('usuarioID');
+            console.log("Sistema liberado para o usuário:", idAtual);
+            await usuarioLogado(idAtual);
+
+        }
+
+
+
+
+        console.log("RELATÓRIO DE ESTOQUE");
+        console.table(listaParaConferir);
+        if (vitrineContainer) {
+            
+            await vitrine();
+        }
+        else if (produtoContainer) {
+            
+            await carregarDetalhesDoProduto();
+        }
+
+        else if (categoriaContainer) {
+            
+            await Categoria();
+        }
+        else if (carrinhoContainer) {
+            
+            await carrinho();
+
+        }
+        else if (buscaContainer) 
+        {
+            await carregarPesquisa();    
+        }
+        else if(comprasContainer)
+        {
+            console.log("compras");
+            await carregarCompras();
+        }
+        else {
+            console.log('nenhum');
+        }
+
+
+    } catch {
+        console.error("Erro no fluxo:");
+    }
+}
+
+
+
+async function acessarProduto(produtoId) {
+ try {
+    const produto = await procurarId(produtoId);
+    
+    if (produto)
+    {
+        window.location.href = `produto.html?id=${produtoId}`;    
+    }
+    else
+    {
+        alert("Produto não está mais disponível");
+        return;
+    }
+    
+ } 
+ catch 
+ {
+    console.log("erro ao acessar produto");
+ }
+    
+
+}
+
+
+async function carregarDetalhesDoProduto() {
+    try {
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const produtoId = urlParams.get('id');
+
+        if (!produtoId) return;
+
+
+        const produto = await procurarId(produtoId);
+
+
+        const verProduto = document.getElementById('produto');
+
+        if (verProduto) {
+            let parcelado = produto.preco / 12;
+
+
+            verProduto.innerHTML = `
+                <div class="descricao-container">
+                    <div><h2>${produto.titulo}</h2></div>
+                    <div class="avaliacao">Nota de Avaliações: ${produto.classificacao} ⭐</div>
+                    <div class="estoque">Restam ainda ${produto.estoque} produtos</div>
+                    <p class="titulo-descricao">Descrição do Produto</p>
+                    <div class="descricao">${produto.descricao}</div>
+                </div>
+                <div class="imagem-container"> <img src="${produto.imagem}"  onerror="this.src='imagens/noimagem.png'"></div>
+                <div class="container-valor">
+                    <div class="preco">R$${produto.preco.toFixed(2)}</div>
+                    <div class="parcelado">ou em 12x de ${parcelado.toFixed(2)}</div>
+                    <button class="comprar">Comprar Agora</button>
+                    <button onclick = "adicionarCarrinho('${produto._id}')" class="add-carrinho">Adicionar Ao Carrinho🛒</button>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error("Erro ao carregar produto:", error);
+    }
+}
+
+
+async function voltarParaVitrine() {
+    document.getElementById('categoria').style.display = 'none';
+    document.getElementById('vitrine').style.display = 'flex';
+}
+
+
+
+async function clickCategoria(categoria) {
+    window.location.href = `categoria.html?categoria=${categoria}`;
+}
+
+
+async function Categoria() {
+    console.log('dentro da função categoria');
+    const urlParams = new URLSearchParams(window.location.search);
+    const categoria = urlParams.get('categoria');
+
+    const produtos = await procurarCategoria(categoria);
+
+    const categoriaVitrine = document.getElementById('categoria');
+
+
+    console.log('parando aqui');
+    await produtos.forEach(produto => {
+        try {
+            categoriaVitrine.innerHTML +=
+                `
+        <div class="container-cards" onclick="acessarProduto('${produto._id}')">
+        <img src="${produto.imagem}" onerror="this.src='imagens/noimagem.png'">
+        <p>${produto.titulo}</p>
+        <p>R$${Number(produto.preco).toFixed(2)}</p>
+        </div> 
+        `;
+        }
+        catch {
+            console.log(`Erro no produto`);
+        }
+
+
+
+
+    });
+
+}
+
+
+async function cadastroUsuario() {
+    try {
+        const nome = document.getElementById('nome').value;
+        const usuario = document.getElementById('usuario').value;
+        const senha = document.getElementById('senha').value;
+        const senha2 = document.getElementById('senha2').value;
+        let cpf = document.getElementById('cpf').value;
+        let telefone = document.getElementById('telefone').value;
+        let cep = document.getElementById('cep').value;
+        const rua = document.getElementById('rua').value;
+        const numero = document.getElementById('numero').value;
+        cpf = cpf.replace(/[^\d]+/g, '');
+        telefone = telefone.replace(/[^\d]+/g, '');
+        cep = cep.replace(/[^\d]+/g, '');
+
+        if (nome === '' || usuario === '' || senha === '' || senha2 === '' || cpf === '' || telefone === ''|| cep === ''|| rua === '' || numero === '') {
+            alert("Por favor, preencha todos os campos!");
+            return;
+        }
+        else if (usuario.length < 6 || senha.length < 6) {
+            alert("Usuario e senha devem conter mais de 6 digitos!");
+            return;
+        }
+        else if (senha != senha2) {
+            alert("As senha nao condizem!");
+            return;
+        }
+        else if (await validarCPF(cpf) === false) {
+            alert("Cpf inválido!");
+            return;
+        }
+        else if (telefone.length != 11) {
+            alert("Telefone inválido!");
+            return;
+        }
+        const cadastro = {
+            tipo: 'usuario',
+            nome: nome,
+            usuario: usuario,
+            senha: senha,
+            cpf: cpf,
+            telefone: telefone,
+            cep : cep,
+            rua : rua,
+            numero : numero,
+        };
+        await salvarUsuarioBanco(cadastro);
+    }
+    catch {
+        alert("Erro no sistemas tente  novamente mais tarde");
+
+    }
+
+
+}
+
+function validarCPF(cpf) {
+
+
+
+    if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) {
+        return false;
+    }
+
+    let soma = 0;
+    let resto;
+
+    // Validação do primeiro dígito verificador
+    for (let i = 1; i <= 9; i++) {
+        soma = soma + parseInt(cpf.substring(i - 1, i)) * (11 - i);
+    }
+    resto = (soma * 10) % 11;
+    if ((resto === 10) || (resto === 11)) resto = 0;
+    if (resto !== parseInt(cpf.substring(9, 10))) return false;
+
+    // Validação do segundo dígito verificador
+    soma = 0;
+    for (let i = 1; i <= 10; i++) {
+        soma = soma + parseInt(cpf.substring(i - 1, i)) * (12 - i);
+    }
+    resto = (soma * 10) % 11;
+    if ((resto === 10) || (resto === 11)) resto = 0;
+    if (resto !== parseInt(cpf.substring(10, 11))) return false;
+
+    return true;
+}
+
+async function logar() {
+    try {
+        const usuarioId = document.getElementById('usuario').value;
+        const senhaId = document.getElementById('senha').value;
+        const login = {
+            usuario: usuarioId,
+            senha: senhaId
+
+        };
+        const logado = await procurarUsuario(login);
+        
+        if (logado === true) {
+           
+           const idAtual = localStorage.getItem('usuarioID');
+           const usuario = await procurarId(idAtual);
+           const pendentes = JSON.parse(localStorage.getItem('produtosPendentes') || '[]');
+           for (const pendente of pendentes) 
+           {
+            await salvarProdutoCarrinho(pendente.id,usuario);
+           }
+           localStorage.removeItem('produtosPendentes');
+           window.location.href = "index.html";
+        }
+    }
+    catch {
+        alert("Erro no sistema logar tente novamente mais tarde");
+    }
+
+}
+
+async function usuarioLogado(id) {
+    try {
+
+        console.log("Dentro da função usuarioLogado!");
+        const usuario = await procurarId(id);
+        const nome = await formatarNomeUsuario(usuario.nome);
+        const btnLogin = document.getElementById('btn-login');
+        const btnCadastro = document.getElementById('btn-cadastro');
+        const html = document.getElementById('usuario');
+        document.querySelector('.botoes').style.display = 'none';
+        html.style.display = 'flex';
+        if (usuario.tipo === 'usuario') 
+        {
+            
+        console.log("usuario");
+        html.innerHTML +=
+        `
+        <div class="usuario-logado">Usuário:${nome}</div>
+        <div class="logado-botoes">
+        <button onclick="deslogar()"class="sair">Sair</button>
+        <button onclick="window.location.href='compras.html'"class="compras">Compras</button> 
+        <button onclick="window.location.href='carrinho.html'"><img src="imagens/carrinho-icone.png" class="icone"></button>
+     
+        </div>
+        `
+        }
+        else
+        {
+        console.log("adm");
+        html.innerHTML +=    
+        `
+        <div class="botao-adm">
+        <button onclick="window.location.href='administrador.html'">Modo<br>ADM</button>
+        </div>
+        <div class="usuario-logado">Usuário:${nome}</div>
+        <div class="logado-botoes">
+        <button onclick="deslogar()"class="sair">Sair</button>
+        <button onclick="window.location.href='compras.html'"class="compras">Compras</button> 
+        <button onclick="window.location.href='carrinho.html'"><img src="imagens/carrinho-icone.png" class="icone"></button>
+        
+     
+        </div>
+        `
+        }
+    }
+    catch (error) {
+        console.log(error);
+        return;
+
+    }
+
+
+
+}
+
+async function deslogar() {
+    const deslogar = confirm("Tem certeza que deseja deslogar?");
+    if(deslogar)
+    {
+    localStorage.setItem('isLogged', 'false');
+    window.location.href = `index.html`;
+    }
+
+}
+
+async function formatarNomeUsuario(nomeCompleto) {
+    if (!nomeCompleto) return "";
+    return nomeCompleto.trim().split(' ')[0];
+}
+
+
+async function adicionarCarrinho(idProduto) {
+    try
+    {
+    
+    const logado = localStorage.getItem('isLogged') === 'true';
+
+    if (!logado) {
+        {
+        const pendentes = JSON.parse(localStorage.getItem('produtosPendentes') || '[]');
+        
+        for (let i = 0; i < pendentes.length ; i++) 
+        {
+            if (pendentes[i].id === idProduto) 
+            {
+                alert("Produto já adicionado no carrinho");
+                return;
+            }
+        }
+           
+        pendentes.push({    
+        
+        id: idProduto,
+        quantidade: 1,
+        check : true
+        });
+              
+        
+        localStorage.setItem('produtosPendentes', JSON.stringify(pendentes));
+        alert("Produto adicionado com sucesso");
+        return;
+        }
+        
+    }
+    else {
+
+        const idAtual = localStorage.getItem('usuarioID');
+        const usuario = await procurarId(idAtual);
+        await salvarProdutoCarrinho(idProduto, usuario);
+        
+       
+        
+    }
+    }
+    catch
+    {
+        alert("Erro ao adicionar ao carrinho");
+    }
+}
+async function excluirProduto(produtoid)
+{
+   
+
+    try
+    {
+        const resposta = confirm("Tem certeza que deseja excluir este item do carrinho");
+        if (resposta === false) 
+        {
+           return; 
+        }
+        const logado = localStorage.getItem('isLogged') === 'true';
+        const produto = produtoid;
+        let produtos= [];
+        
+
+        if (!logado) 
+        {
+            
+            produtos = await JSON.parse(localStorage.getItem('produtosPendentes') || '[]');
+            for (let i = 0; i < produtos.length; i++)
+        {
+            if (produto === produtos[i].id)
+            {
+                
+                produtos.splice(i,1);
+                break;
+                
+            }
+            
+        }
+
+        localStorage.setItem('produtosPendentes', JSON.stringify(produtos));
+        
+        window.location.href = "carrinho.html";
+
+        }
+        else
+        {
+            const idAtual = localStorage.getItem('usuarioID');
+            const usuario = await procurarId(idAtual);
+            for (let i = 0; i < usuario.carrinho.length; i++)
+            {
+        
+            if (produto === usuario.carrinho[i].id)
+            {
+                console.log("achei");
+                usuario.carrinho.splice(i,1);
+                break;
+                
+            }
+           
+            
+            }
+            await db.put(usuario);
+            window.location.href = "carrinho.html";
+
+
+        }
+
+        
+
+
+    } catch 
+    {
+        alert("Erro ao excluir produto!");
+    }
+    
+}
+
+async function diminuir(i,produto) 
+{
+    try
+    {
+    let produtos= [];
+    const logado = localStorage.getItem('isLogged') === 'true';
+    
+    const produtoId = produto;
+    const menos = document.getElementById(`qtd-${i}`);
+
+    if (menos.value > 1) 
+    {
+    
+    
+    menos.value -- ;
+        
+    }
+    else
+    {
+        excluirProduto(produtoId);
+        
+    }
+
+    if (!logado)
+    {
+        produtos = await JSON.parse(localStorage.getItem('produtosPendentes') || '[]');
+            for (let i = 0; i < produtos.length; i++)
+            {
+                if (produtoId === produtos[i].id)
+                {
+                    console.log("entrei no array do Não logado diminuir");
+                    produtos[i].quantidade = menos.value;
+                    console.log(produtos[i].quantidade);
+                }   
+                
+            }
+            localStorage.setItem('produtosPendentes', JSON.stringify(produtos));
+            window.location.href = "carrinho.html";
+    }
+     else
+    {
+        const idAtual = localStorage.getItem('usuarioID');
+        const usuario = await procurarId(idAtual);
+        for (const item of usuario.carrinho) 
+        {
+            produtos.push(item);    
+        }
+        for (let i = 0; i < produtos.length; i++)
+            {
+                if (produtoId === produtos[i].id)
+                {
+                    produtos[i].quantidade = menos.value;
+                }   
+                
+            }
+            
+            await db.put(usuario);
+            window.location.href = "carrinho.html";
+
+    }
+}
+catch
+{
+    console.log("Erro ao diminuir");
+}
+    
+}
+async function aumentar(i,produto) 
+{
+    try
+    {
+    const produtoId = produto;
+    const produtoC = await procurarId(produtoId);
+    const mais =  document.getElementById(`qtd-${i}`);
+    if (mais.value < produtoC.estoque) 
+    {
+    mais.value ++;
+    let produtos= [];
+    const logado = localStorage.getItem('isLogged') === 'true';
+    
+    if (!logado )
+    {
+            produtos = await JSON.parse(localStorage.getItem('produtosPendentes') || '[]');
+            for (let i = 0; i < produtos.length; i++)
+            {
+                if (produtoId === produtos[i].id)
+                {
+                    produtos[i].quantidade = mais.value;
+                }   
+                
+            }
+            localStorage.setItem('produtosPendentes', JSON.stringify(produtos));
+            window.location.href = "carrinho.html";
+            
+    }
+    else
+    {
+        const idAtual = localStorage.getItem('usuarioID');
+        const usuario = await procurarId(idAtual);
+        for (const item of usuario.carrinho) 
+        {
+            produtos.push(item);    
+        }
+        for (let i = 0; i < produtos.length; i++)
+            {
+                if (produtoId === produtos[i].id)
+                {
+                    produtos[i].quantidade = mais.value;
+                }   
+                
+            }
+            await db.put(usuario);
+            window.location.href = "carrinho.html";
+
+    }
+    }
+    else
+    {
+        alert("Estoque máximo disponível adicionado");
+        return;
+    }
+    
+    }
+    catch
+    {
+        console.log("Erro ao aumentar");
+    }
+}
+
+async function carrinho() {
+
+    const produtoCarrinho = document.getElementById('produtoCarrinho');
+    const valorCarrinho = document.getElementById('valorCarrinho');
+    const logado = localStorage.getItem('isLogged') === 'true';
+    let produtosId = [];
+    let produtos = [];
+    let precoTotal = 0 ;
+
+    try {
+        if (!logado) {
+            produtosId = await JSON.parse(localStorage.getItem('produtosPendentes') || '[]');
+
+            for (const idE of produtosId) {
+            console.log(idE);
+            console.log(idE.id);
+            const quantidade = idE.quantidade; 
+            console.log(quantidade);
+            const produto = await procurarId(idE.id);
+            console.log(produto._id)
+            if (produto != false) {
+                produtos.push({produto:produto,quantidade:quantidade,check:idE.check});
+                console.log("Fiz o push");
+
+            }
+        }
+
+
+        }
+        else {
+            const idAtual = localStorage.getItem('usuarioID');
+            const usuario = await procurarId(idAtual);
+
+            for (const produto of usuario.carrinho) 
+            {   const produtoE = await procurarId(produto.id);
+                if (produtoE != false)
+                {
+                produtos.push({produto:produtoE,quantidade:produto.quantidade,check:produto.check});
+                }
+            }
+        }
+       
+        
+    let produtosCheck = [];
+
+    if (produtos.length > 0) {
+    for (let i = 0;i < produtos.length;i++) {
+    
+    if (produtos[i].check !=  false) 
+    {
+        precoTotal += produtos[i].produto.preco * produtos[i].quantidade;
+        produtosCheck.push(produtos[i]);
+    }
+     produtoCarrinho.innerHTML +=
+     `
+     <img onclick = "acessarProduto('${produtos[i].produto._id}')" src="${produtos[i].produto.imagem}"  onerror="this.src='imagens/noimagem.png'">
+     <button class="lixeira" onclick="excluirProduto('${produtos[i].produto._id}')"><img src= "imagens/lixeira.png"></button>
+     <input type="checkbox" id="meuCheck-${i}" onchange="verificarCheck(this, ${i},'${produtos[i].produto._id}')" ${produtos[i].check ? 'checked' : ''}>
+     <h3 class="nome-produto=carrinho">${produtos[i].produto.titulo}</h3>
+     <p  class="preco-produto-carrinho">Valor:${produtos[i].produto.preco.toFixed(2)}R$</p>
+     <div class="quantidade">
+     <button onclick="diminuir(${i},'${produtos[i].produto._id}')">-</button>
+     <input class="input-quantidade" type="number" id="qtd-${i}" value="${produtos[i].quantidade}" min="1" max="99" readonly>
+     <button onclick="aumentar(${i},'${produtos[i].produto._id}')">+</button>
+     <br>
+     
+     </div>
+
+    `;
+    
+      
+    }
+      
+   
+
+    valorCarrinho.innerHTML +=
+    `
+   <p>Valor Total : ${precoTotal.toFixed(2)}R$</p>
+    <button id="btnComprar" class="comprar">Comprar Agora</button>
+    `
+
+    document.getElementById('btnComprar').addEventListener('click', () => {
+    comprar(produtosCheck);
+    });
+    }
+    else {
+
+    const carrinho = document.getElementById('carrinho');
+    carrinho.innerHTML = '';
+    carrinho.innerHTML +=
+    `
+    <div id="carrinho" class="carrinho-container">
+     
+     
+     <div class="container-vazio">
+        <p class ="sem-produtos">Carrinho vazio, adicione produtos.<p>
+        <img src = "imagens/carrinho-vazio.png">
+        <button onclick="window.location.href='index.html'" class="botao-carrinho-vazio">Ver produtos</button>
+     </div>
+    </div> 
+    `
+    }
+    }
+    catch {
+        alert("Erro no sistema carrinho");
+    }
+}
+
+
+
+// Pesquisa
+async function pesquisar(value)
+{
+    try{
+    const busca = document.getElementById('campoBusca').value;
+    const palavras = busca.split(' ');
+    if (busca != '') 
+    {
+        window.location.href = `busca.html?busca=${palavras}`;
+    }
+    else
+    {
+        alert("Digite algo para pesquisar");
+        return;
+    }
+    }
+
+    catch
+    {
+        alert("Erro ao pesquisar");
+    }
+
+}
+
+async function carregarPesquisa() 
+{
+    try
+    {
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const busca = urlParams.get('busca');
+    const palavras = busca.split(',');
+    const produtos = await filtrarProdutos();
+
+    let encontrados = [];
+
+    for (const produto of produtos) 
+    {
+        const produtoU = await removerAcentos(produto.titulo);
+        for (const palavra of palavras) 
+        {
+        const palavraU = await removerAcentos(palavra);
+        console.log (palavra.length);   
+        if (produtoU.toLowerCase().includes(palavraU.toLowerCase()) && palavraU.length > 3)
+        {
+            encontrados.push(produto);
+            break;
+           
+        }
+        }
+    }
+
+    if (encontrados.length == 0) 
+    {
+        for (const produto of produtos) 
+    {
+        const produtoU = await removerAcentos(produto.categoria);
+        for (const palavra of palavras) 
+        { 
+        const palavraU = await removerAcentos(palavra);  
+        if (produtoU.toLowerCase().includes(palavraU.toLowerCase()) && palavraU.length > 3)
+        {
+            encontrados.push(produto);
+        }
+        }
+    }
+    }
+
+    if (encontrados.length > 0) 
+    {
+        const buscaContainer = document.getElementById('busca');
+        buscaContainer.innerHTML = '';
+
+        for (let i = 0; i < encontrados.length; i++) {
+        buscaContainer.innerHTML +=
+        `
+        
+        <div class="container-cards" onclick="acessarProduto('${encontrados[i]._id}')">
+        <img src="${encontrados[i].imagem}"  onerror="this.src='imagens/noimagem.png'">
+        <p>${encontrados[i].titulo}</p>
+        <p>R$${encontrados[i].preco.toFixed(2)}</p>
+        </div> 
+        `;
+        }     
+    }
+    else
+    {
+        alert("Nenhum produto encontrado");
+    }
+    }
+
+    catch
+    {
+        alert("Erro ao  carregar a pesquisa tente novamente mais tarde!");
+    }
+    
+}
+function removerAcentos(texto) {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+// compras
+
+async function carregarCompras() 
+{
+    const idAtual = localStorage.getItem('usuarioID');
+    const usuario = await procurarId(idAtual);
+    const produtoCompras = document.getElementById('produtoCompras');
+    
+     for (const item of usuario.compras) 
+    {
+        
+     produtoCompras.innerHTML +=
+     `
+     <img onclick = "acessarProduto('${item.produto._id}')" src="${item.produto.imagem}"  onerror="this.src='imagens/noimagem.png'">
+     <h3 class="nome-produto-preco">${item.produto.titulo}</h3>
+     <p  class="preco-produto-preco">Valor gasto:R$${item.produto.preco*item.quantidade}</p>
+     <p  class="preco-produto-preco">Quantidade:${item.quantidade}</p>
+     <br>
+
+    `;
+    }
+}
+
+async function comprar(produtos) 
+{
+    if (produtos.length == 0 ) 
+    {
+        alert("Assinale os itens para compra");   
+        return; 
+    }
+    const logado = localStorage.getItem('isLogged') === 'true';
+    if (!logado) 
+    {
+        alert("Cadastre-se para comprar");
+        window.location.href = `cadastro.html`;
+        return;
+
+    }
+    else
+    {
+        let nomes = '';
+        let valorTotal = 0;
+        for (const  item of produtos) 
+        {
+            console.log(item.produto.preco);
+            valorTotal += item.produto.preco * item.quantidade;
+            nomes += item.produto.titulo + ",";
+
+        }
+       const comprar =  confirm(`Tem certeza que deseja comprar os itens:${nomes} no valor de ${valorTotal}`);
+
+
+       if (comprar) 
+       {
+          const idAtual = localStorage.getItem('usuarioID');
+          const usuario = await procurarId(idAtual);
+
+          for (const item of produtos) 
+          {
+            usuario.compras.push({produto:item.produto,quantidade:item.quantidade});
+            
+           for (let i= 0; i < usuario.carrinho.length; i++)
+           {
+             if (usuario.carrinho[i].id === item.produto._id) 
+             {
+                usuario.carrinho.splice(i,1);
+                
+             }
+            
+           }     
+          
+            const produto = await procurarId(item.produto._id);
+            produto.estoque -= item.quantidade;
+            if (produto.estoque <= 0) 
+            {
+                await db.remove(produto);
+            }
+            else
+            {
+                await db.put(produto);
+            }
+
+          }
+          await db.put(usuario); 
+          alert("compra efetuada com sucesso!");
+          window.location.href =`compras.html`;
+
+
+       }
+}
+}
+async function verificarCheck(check, i,idProduto) 
+{
+    try
+    {
+    const logado = localStorage.getItem('isLogged') === 'true';
+    if (check.checked)
+    {
+    if (logado) 
+    {
+        const idAtual = localStorage.getItem('usuarioID');
+        const usuario = await procurarId(idAtual);
+
+        for (const item of usuario.carrinho) 
+        {
+            if (item.id === idProduto) 
+            {
+                item.check = true;
+                db.put(usuario);
+                window.location.href = "carrinho.html";    
+            }    
+        }
+        
+    }
+    else
+    {
+       const pendentes = JSON.parse(localStorage.getItem('produtosPendentes') || '[]');
+        
+      for (const item of pendentes) 
+      {
+        if (item.id === idProduto) 
+        {
+            item.check = true;
+            localStorage.setItem('produtosPendentes', JSON.stringify(pendentes));
+            window.location.href = "carrinho.html";        
+        }  
+      }
+        
+    }
+    }
+    else
+    {
+    if (!check.checked && logado) 
+    {
+        const idAtual = localStorage.getItem('usuarioID');
+        const usuario = await procurarId(idAtual);
+
+        for (const item of usuario.carrinho) 
+        {
+            console.log(item);
+            if (item.id === idProduto) 
+            {
+                item.check = false;
+                db.put(usuario);
+                window.location.href = "carrinho.html";    
+            }    
+        }
+        
+    }
+    else
+    {
+        const pendentes = JSON.parse(localStorage.getItem('produtosPendentes') || '[]');
+        
+      for (const item of pendentes) 
+      {
+        if (item.id === idProduto) 
+        {
+            item.check = false;
+            localStorage.setItem('produtosPendentes', JSON.stringify(pendentes));
+            window.location.href = "carrinho.html";        
+        }  
+      }
+
+    }
+
+    }
+}
+catch
+{
+    console.log("Erro na checagem de carrinho!");
+}
+}
+
+async function listarProdutos()
+{
+  const listar = document.getElementById('adm');
+  
+  const produtos = await filtrarProdutos();
+  listar.innerHTML = 
+  `
+  <div class="container-lista">
+    <table>
+      <thead>
+        <tr>
+          <th>Titulo</th>
+          <th>Categoria</th>
+          <th>Preço</th>
+          <th>Estoque</th>
+          <th>Excluir</th>
+        </tr>
+      </thead>
+      <tbody id = "itens">
+      </tbody>
+    </table>
+  </div>
+`;
+
+const itens = document.getElementById('itens');
+for (const produto of produtos) 
+{
+    
+
+itens.innerHTML +=
+`
+     <tr>
+        <td>${produto.titulo}</td>
+        <td>${produto.categoria}</td>
+        <td>${produto.preco}</td>
+        <td>${produto.estoque}</td>
+        <td><img src="imagens/lixeira.png" onclick="excluirProdutoBanco('${produto._id}')"></td>
+    </tr>
+`
+}
+
+  
+}
+
+async function excluirProdutoBanco(id) 
+{
+    try{
+    const confirmar = confirm("Tem certeza que deseja excluir este produto?");
+    if (confirmar) 
+    {
+        const produto =  await procurarId(id);
+        await db.remove(produto);
+        alert("Produto excluido com sucesso");
+        listarProdutos(); 
+    }
+    
+    }
+    catch
+    {
+        alert("Erro ao excluir produto");
+        return;
+    }
+}
+
+
+async function listarUsuarios() 
+{
+ const listar = document.getElementById('adm');
+  
+  const usuarios = await filtrarUsuarios();
+  listar.innerHTML = 
+  `
+  <div class="container-lista">
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Cpf</th>
+          <th>Telefone</th>
+          <th>Excluir</th>
+        </tr>
+      </thead>
+      <tbody id = "itens">
+      </tbody>
+    </table>
+  </div>
+`;
+
+const itens = document.getElementById('itens');
+for (const usuario of usuarios) 
+{
+    
+
+itens.innerHTML +=
+`
+     <tr>
+        <td>${usuario.nome}</td>
+        <td>${usuario.cpf}</td>
+        <td>${usuario.telefone}</td>
+        <td><img src="imagens/lixeira.png" onclick="excluirUsuario('${usuario._id}')"></td>
+    </tr>
+`
+}
+}
+
+async function excluirUsuario(id) 
+{
+    try 
+    {
+        const confirmar = confirm("Tem certeza que deseja excluir este usuario?");
+        if (confirmar) 
+        {
+            const usuario = await procurarId(id);
+            //await db.remove(usuario);
+            console.log(usuario)
+        }
+        
+            
+    } 
+    catch
+    {
+        alert("Erro ao excluir");    
+    }    
+}
+async function adicionarAdministrador() 
+{
+    const adicionar = document.getElementById('adm');
+    
+    adicionar.innerHTML =
+    `
+     <div class="container-cadastro">
+    <div class="cadastro">
+    <br>
+    <label for="nome">Nome:</label>
+    <br>
+    <input type="text" id="nome" placeholder="Nome Completo">
+    <br>
+
+    <label for="usuario">Usuario:</label>
+    <br>
+    <input type="text" id="usuarioE" maxlength="14" placeholder="Minimo 6 digitos, Maximo 14">
+    <br>
+
+    <label for="senha">Senha:</label>
+    <br>
+    <input type="password" id="senha" maxlength="14" placeholder="Minimo 6 digitos, Maximo 14">
+    <br>
+
+    <label for="senha2">Repita a Senha:</label>
+    <br>
+    <input type="password" id="senha2" placeholder="Digite novamente">
+    <br>
+
+    <label for="cpf">CPF:</label>
+    <br>
+    <input type="text" id="cpf" maxlength="14" inputmode="numeric" placeholder="000.000.000-00">
+    <br>
+
+    <button class="botao-cadastro-adm" onclick="cadastroAdm()">Cadastrar</button>
+  </div>
+</div>
+          
+         
+    `
+}
+async function cadastroAdm() 
+{
+    try
+    {
+     const nome =  document.getElementById('nome').value;
+     const usuario =  document.getElementById('usuarioE').value;
+     const senha =  document.getElementById('senha').value;
+     const senha2 =  document.getElementById('senha2').value;
+     let cpf =  document.getElementById('cpf').value;
+     cpf = cpf.replace(/[^\d]+/g, '');
+
+     console.log(usuario);
+     console.log(senha);
+
+       if (nome === '' || usuario === '' || senha === '' || senha2 === '' || cpf === '') {
+            alert("Por favor, preencha todos os campos!");
+            return;
+        }
+
+         else if (usuario.length < 6 || senha.length < 6) {
+            alert("Usuario e senha devem conter mais de 6 digitos!");
+            return;
+        }
+        else if (senha != senha2) {
+            alert("As senha nao condizem!");
+            return;
+        }
+        else if (await validarCPF(cpf) === false) {
+            alert("Cpf inválido!");
+            return;
+        }
+    
+        const cadastro = {
+            tipo: 'administrador',
+            nome: nome,
+            usuario: usuario,
+            senha: senha,
+            cpf: cpf,
+        };
+        await salvarUsuarioBanco(cadastro);
+    }
+    catch
+    {
+        alert("Erro ao cadastrar o administrador");
+    }
+}
+
+
+
+async function adicionarProduto()
+{
+    const adicionar =  document.getElementById('adm');
+
+    adicionar.innerHTML = 
+    `
+    <div class="container-cadastro">
+    <div class="cadastro">
+    <br>
+    <label for="titulo">Titulo:</label>
+    <br>
+    <input type="text" id="titulo" placeholder="Digite o titulo">
+    <br>
+
+
+    <label for="categoria">Categoria:</label>
+    <br>
+    <select id="categorias">
+    <option value="ferramentas e construção">
+        Ferramentas e Construção
+    </option>
+
+    <option value="eletrônicos">
+        Eletrônicos
+    </option>
+
+    <option value="brinquedos">
+        Brinquedos
+    </option>
+
+    <option value="esporte e fitness">
+        Esporte e Fitness
+    </option>
+
+    <option value="jogos">
+        Jogos
+    </option>
+
+    <option value="informatica">
+        Informática
+    </option>
+
+    <option value="petshop">
+        PetShop
+    </option>
+
+    <option value="eletrodomésticos">
+        Eletrodomésticos
+    </option>
+
+    <option value="moda">
+        Moda
+    </option>
+    </select>
+
+    <br>
+    <label for="descricao">Descrição:</label>
+    <br>
+    <textarea id="descricao" rows="6" cols="22" placeholder="Descrição do produto"></textarea>
+    <br>
+    <label for="imagem">Imegem:</label>
+    <br>
+    <input type="file" id="imagem" accept="image/*">
+    <br>
+    <label for="preco">Preço:</label>
+    <br>
+    <input type="number" id="preco" step="0.01" placeholder="R$ 0,00">
+    <br>
+    <label for="estoque">Estoque:</label>
+    <br>
+    <input type="number" id="estoque" placeholder="quantidade">
+
+
+ 
+
+    <button class="botao-cadastro-adm" onclick="cadastrarProduto()">Cadastrar</button>
+    </div>
+</div>
+    `
+}
+
+async function cadastrarProduto() 
+{
+    const titulo = document.getElementById('titulo').value;
+    const categoria = document.getElementById('categorias').value;
+    const descricao = document.getElementById('descricao').value;
+    const preco = document.getElementById('preco').value;
+    const imagem = document.getElementById('imagem').files[0];
+    const estoque = document.getElementById('estoque').value;
+    const produto = {
+        titulo: titulo,
+        categoria:categoria,
+        descricao:descricao,
+        preco:preco,
+        imagem:imagem,
+        estoque:estoque,
+    }
+
+    if (!produto.titulo || !produto.imagem || !produto.descricao || !produto.preco || !produto.estoque)
+    {
+        alert("Por favor preencha todos os campos");
+        return;
+    }
+    else
+    {
+    await salvarProduto(produto); 
+    }
+  
+
+
+}
+window.adicionarProduto = adicionarProduto;
+window.cadastrarProduto = cadastrarProduto;
+window.cadastroAdm = cadastroAdm;
+window.adicionarAdministrador = adicionarAdministrador;
+window.excluirUsuario = excluirUsuario;
+window.listarUsuarios = listarUsuarios;
+window.listarProdutos = listarProdutos;
+window.verificarCheck = verificarCheck;
+window.comprar = comprar;
+window.acessarProduto = acessarProduto;
+window.voltarParaVitrine = voltarParaVitrine;
+window.clickCategoria = clickCategoria;
+window.cadastroUsuario = cadastroUsuario;
+window.logar = logar;
+window.deslogar = deslogar;
+window.adicionarCarrinho = adicionarCarrinho;
+window.diminuir = diminuir;
+window.aumentar = aumentar;
+window.excluirProdutoBanco = excluirProdutoBanco;
+window.pesquisar = pesquisar;

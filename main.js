@@ -174,17 +174,6 @@ async function inicializarSistema() {
         const carrinhoContainer = document.getElementById('carrinho');
         const buscaContainer = document.getElementById('busca');
         const comprasContainer = document.getElementById('compras');
-        const resumo = await db.allDocs();
-        const listaParaConferir = resumo.rows.map(item => {
-            return {
-                id_no_banco: item.id,
-                tipo_do_id: typeof item.id,
-                usuario: item.usuario,
-                cpf: item.cpf
-
-
-            };
-        });
 
         if (localStorage.getItem('isLogged') === 'true') {
             console.log("usuario logado!");
@@ -196,11 +185,8 @@ async function inicializarSistema() {
 
 
 
-
-        console.log("RELATÓRIO DE ESTOQUE");
-        console.table(listaParaConferir);
         if (vitrineContainer) {
-            
+            console.log("estou na vitrine");
             await vitrine();
         }
         else if (produtoContainer) {

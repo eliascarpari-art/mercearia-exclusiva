@@ -9,7 +9,7 @@ export async function vitrine() {
 
 
     const idsEscolhidos = [];
-    for (let i = 0; idsEscolhidos.length <= 20; i++) {
+    for (let i = 0; idsEscolhidos.length <= 23; i++) {
 
         const indice = Math.floor(Math.random() * produtos.length) ;
         if (!idsEscolhidos.includes(indice)) {
@@ -19,7 +19,7 @@ export async function vitrine() {
 
     }
    
-        for (let i = 0; i <= 20; i++) {
+        for (let i = 0; i <= 23; i++) {
             const produto = produtos[idsEscolhidos[i]];
             vitrineContainer.innerHTML +=
                 `

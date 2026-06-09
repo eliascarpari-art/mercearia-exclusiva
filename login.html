@@ -16,12 +16,14 @@
          <input  type="text" id="campoBusca"  placeholder="Oque você procura?">
         <button onclick="pesquisar(value)"><img src="imagens/lupa.png"class="icone"></button>
     </div>
-   
+        <div id="usuario" class="nome-usuario"></div>
       <div class="botoes">
-        <button onclick="window.location.href='login.html'">Login</button>
-        <button onclick="window.location.href='cadastro.html'">Cadastre-se</button>
-        <button onclick="window.location.href='carrinho.html'"> <img src = "imagens/carrinho-icone.png" class="icone"></button>
-    </div>
+                <button id="btn-login" onclick="window.location.href='login.html'">Login</button>
+                <button id="btn-cadastro" onclick="window.location.href='cadastro.html'">Cadastre-se</button>
+                <button onclick="window.location.href='carrinho.html'">
+                    <img src="imagens/carrinho-icone.png" class="icone">
+                </button>
+        </div>
 </div>
        
      </header>
@@ -29,7 +31,7 @@
         <div class=usuario>
             <label for="usuario">Usuario:</label>
             <br>
-            <input type="text" id="usuario">
+            <input type="text" id="usuario1">
         </div>
         <div class=senha>   
             <label for="senha">Senha: </label>

@@ -4,7 +4,7 @@ import { validarCPF } from "./utils.js";
 async function cadastroUsuario() {
     try {
         const nome = document.getElementById('nome').value;
-        const usuario = document.getElementById('usuario').value;
+        const usuario = document.getElementById('usuario1').value;
         const senha = document.getElementById('senha').value;
         const senha2 = document.getElementById('senha2').value;
         let cpf = document.getElementById('cpf').value;

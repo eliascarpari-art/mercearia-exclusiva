@@ -2,7 +2,7 @@ import { procurarId, procurarUsuario, salvarProdutoCarrinho } from "./db.js";
 
 async function logar() {
     try {
-        const usuarioId = document.getElementById('usuario').value;
+        const usuarioId = document.getElementById('usuario1').value;
         const senhaId = document.getElementById('senha').value;
         const login = {
             usuario: usuarioId,

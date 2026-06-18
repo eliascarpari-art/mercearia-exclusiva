@@ -1,6 +1,25 @@
 import { db, procurarId, salvarUsuarioBanco, filtrarProdutos, filtrarUsuarios, salvarProduto } from "./db.js";
 import { validarCPF } from "./utils.js";
 
+
+const logado = localStorage.getItem('isLogged') === 'true';
+if (logado) 
+{
+    const idAtual = localStorage.getItem('usuarioID');
+    const usuario = await procurarId(idAtual);
+    if (usuario.tipo != 'administrador') 
+    {
+        alert("Voltando para a index !");
+        window.location.href = 'index.html';
+    }
+
+}
+else
+{
+    alert("Voltando para a index !");
+    window.location.href = 'index.html';
+}  
+
 async function listarProdutos()
 {
   const listar = document.getElementById('adm');
